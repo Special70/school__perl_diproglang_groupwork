@@ -29,6 +29,49 @@ sub db_display {
 	}
 }
 
+sub set_lease_details {
+	my ($tenant_id, $floor) = @_;
+
+	my $lease_price = 0;
+	my $additional_charge = 0;
+	my $add_charge_reason = "";
+
+	if ($floor == 1) {
+		$lease_price = 10000;
+		$additional_charge = 4500;
+		$add_charge_reason = "PLUMBING REPAIR"
+	} elsif ($floor == 2) {
+		$lease_price = 12500;
+		$additional_charge = 3500;
+		$add_charge_reason = "FLOOR REPAIR"
+	} elsif ($floor == 3) {
+		$lease_price = 15000;
+		$additional_charge = 4500;
+		$add_charge_reason = "PLUMBING REPAIR"
+	} elsif ($floor == 4) {
+		$lease_price = 17500;
+		$additional_charge = 3500;
+		$add_charge_reason = "FLOOR REPAIR"
+	} elsif ($floor == 5) {
+		$lease_price = 20000;
+		$additional_charge = 4500;
+		$add_charge_reason = "PLUMBING REPAIR"
+	}
+
+	my $query = $myConnection->prepare("select exists (select * from lease where tenant_id= CAST(? AS INTEGER))");
+	$query->execute($tenant_id);
+	my $exists = $query->fetchrow_array;
+
+	if (!$exists) {
+		$query = $myConnection->prepare("insert into lease (tenant_id, base_rent, charge_type, charge) values (?, ?, ?, ?)");
+		$query->execute($tenant_id, $lease_price, $add_charge_reason, $additional_charge);
+	} else {
+		$query = $myConnection->prepare("update lease set base_rent= CAST(? AS INTEGER), charge_type= ?, charge= CAST(? AS INTEGER) where tenant_id= CAST(? AS INTEGER)");
+		$query->execute($lease_price, $add_charge_reason, $additional_charge, $tenant_id);
+	}
+
+}
+
 while (1) {
 	system("cls");
 	print("Welcome to PERL's Apartment Management System\n");
@@ -183,8 +226,17 @@ while (1) {
 					}
 					
 					else {
-						my $query = $myConnection->prepare('Insert into tenants (full_name, floor_num, room_num) values (?,?,?)');
+						# add into tenants
+						my $query = $myConnection->prepare('Insert into tenants (full_name, floor_num, room_num) values (?,?,?)'); 
 						$query->execute($full_name, $floor_num, $room_num);
+
+						# get new tenant's tenant id
+						$query = $myConnection->prepare("select tenant_id from tenants where full_name= ?");
+						$query->execute($full_name);
+						my $tenant_id = $query->fetchrow;
+
+						# now insert a row in the lease table
+						set_lease_details($tenant_id, $floor_num);
 						print("\n\tTenant Successfully Added!\n");
 						sleep 1.5;
 						last;
@@ -201,16 +253,16 @@ while (1) {
 				print("\n\tWhich Tenant would you like to make modifications?\n\n");
 				
 				# asks for either tenant id/name
-				my $userInput = <STDIN>;
-				chomp($userInput);
+				my $tenant_id = <STDIN>;
+				chomp($tenant_id);
 				
-				my $query = $myConnection->prepare("select exists (select * from tenants where tenant_id= ? or full_name= ?)");
-				$query->execute($userInput, $userInput);
+				my $query = $myConnection->prepare("select exists (select * from tenants where tenant_id= ?)");
+				$query->execute($tenant_id);
 				my $exists = $query->fetchrow_array;
 
 				# if tenant id/name does not exist
 				if (!$exists) {
-					print("\nInvalid Tenant ID or Tenant Name. Please try again.");
+					print("\nInvalid Tenant ID. Please try again.");
 					sleep 1;
 					goto choice3;
 				} 
@@ -241,10 +293,11 @@ while (1) {
 					sleep 1;
 					goto modif_prompt;
 				}
-
-				$query = $myConnection->prepare("update tenants set floor_num= ?, room_num= ? where (tenant_id= ? or full_name= ?)");
-				$query->execute($floor_num, $room_num, $userInput, $userInput);
-
+				# update tenant floor and room details
+				$query = $myConnection->prepare("update tenants set floor_num= ?, room_num= ? where (tenant_id= ?)");
+				$query->execute($floor_num, $room_num, $tenant_id);
+				# update lease details
+				set_lease_details($tenant_id, $floor_num);
 				print("\nDone modifying tenant details");
 				sleep 1;
 
@@ -278,21 +331,68 @@ while (1) {
 						}
 					
 					elsif ($count == 0){
-						print("\n\tEmployee does not exist.\n");
+						print("\n\tTenant does not exist.\n");
 						sleep 1;
 					}
 					else {
 						my $delete = $myConnection->prepare('Delete from tenants where tenant_id = ?');
 						$delete->execute($tenant_id);
+
+						$delete = $myConnection->prepare('delete from lease where tenant_id = CAST(? AS INTEGER)');
+						$delete->execute($tenant_id);
 			
-						print("\n\tEmployee Record Successfully Deleted!\n");
+						print("\n\tTenant Record Successfully Deleted!\n");
 						sleep 1;
 					}
 				}
 			}
 				
 			elsif ($menuChoice == 5){
-				print("\nDisplay Summary of Salary records");
+				menuChoice5:
+				print("\nDisplay Summary of Rent Records");
+				db_display();
+				print("\nEnter a Tenant ID to display its Rent Computations\n");
+
+				my $tenant_id = <STDIN>;
+				chomp($tenant_id);
+
+				my $query = $myConnection->prepare("select exists (select * from tenants where tenant_id= ?)");
+				$query->execute($tenant_id);
+				my $exists = $query->fetchrow_array;
+
+				if (!$exists) {
+					print("\n\tInvalid Tenant ID. Please try again.\n");
+					sleep 1;
+					goto menuChoice5;
+				}
+
+				$query = $myConnection->prepare("select base_rent from lease where tenant_id = CAST(? AS INTEGER)");
+				$query->execute($tenant_id);
+				my $base_rent = $query->fetchrow_array;
+
+				$query = $myConnection->prepare("select charge from lease where tenant_id = CAST(? AS INTEGER)");
+				$query->execute($tenant_id);
+				my $additional_charge = $query->fetchrow_array;
+				
+				$query = $myConnection->prepare("select charge_type from lease where tenant_id = CAST(? AS INTEGER)");
+				$query->execute($tenant_id);
+				my $add_charge_reason = $query->fetchrow_array;
+
+				my $total_rent = $base_rent + $additional_charge;
+
+				system('cls');
+				print("\nRent Summary: ");
+				print("\nBase Rent: ");
+				print($base_rent);
+				print("\nAdditional Charge: ");
+				print($additional_charge);
+				print("\nReason: ");
+				print($add_charge_reason);
+				print("\nTotal Rent: ");
+				print($total_rent);
+				print("\n\nEnter to continue\n");
+				<STDIN>;
+				system('cls');
 			}
 			
 		}
