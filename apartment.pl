@@ -1,6 +1,7 @@
 #/usr/bin/perl
 
 use strict; use warnings; use DBI;
+$| = 1; # Disable output buffering
 
 system("cls");
 
@@ -190,11 +191,63 @@ while (1) {
 					}
 				}
 			}
-				
+
+			# update tenant details
 			elsif ($menuChoice == 3){
+				choice3:
+				system('cls');
 				print("\nTenant Logs Updater Menu\n");
 				db_display();
 				print("\n\tWhich Tenant would you like to make modifications?\n\n");
+				
+				# asks for either tenant id/name
+				my $userInput = <STDIN>;
+				chomp($userInput);
+				
+				my $query = $myConnection->prepare("select exists (select * from tenants where tenant_id= ? or full_name= ?)");
+				$query->execute($userInput, $userInput);
+				my $exists = $query->fetchrow_array;
+
+				# if tenant id/name does not exist
+				if (!$exists) {
+					print("\nInvalid Tenant ID or Tenant Name. Please try again.");
+					sleep 1;
+					goto choice3;
+				} 
+
+				modif_prompt:
+
+				print("\nEnter a floor number: ");
+				my $floor_num = <STDIN>;
+				$floor_num += 0;
+				chomp($floor_num);
+
+				print("\nEnter a room number: ");
+				my $room_num = <STDIN>;
+				$room_num += 0;
+				chomp($room_num);
+
+				# checks if provided floor & room number doesn't exist (meaning, not occupied yet)
+				$query = $myConnection->prepare("SELECT EXISTS (SELECT 1 FROM tenants WHERE floor_num = CAST(? AS INTEGER) AND room_num = CAST(? AS INTEGER))");
+				$query->execute($floor_num, $room_num);
+				$exists = $query->fetchrow_array;
+
+				if ($exists) { # if said room is occupied
+					print("\nEntered room in said floor is already taken. Please try again");
+					sleep 1;
+					goto modif_prompt;
+				} elsif (is_invalid($floor_num, 1, 5) || is_invalid($room_num, 1, 10)) { # if user input is invalid
+					print("\nEntered floor/room is invalid. Please try again");
+					sleep 1;
+					goto modif_prompt;
+				}
+
+				$query = $myConnection->prepare("update tenants set floor_num= ?, room_num= ? where (tenant_id= ? or full_name= ?)");
+				$query->execute($floor_num, $room_num, $userInput, $userInput);
+
+				print("\nDone modifying tenant details");
+				sleep 1;
+
 				
 			}
 			
