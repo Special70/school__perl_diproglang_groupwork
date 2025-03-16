@@ -11,6 +11,25 @@ print("Conneting Database...\n"); sleep 1;
 my $myConnection = DBI->connect("DBI:SQLite:dbname=apartmentDB.db", "", "");
 print("\nDatabase Connected!\n"); sleep 1; system("cls");
 
+sub exit_program {
+	system("cls");
+	print("-------------------------------------------------------\n\n");
+	print("Thank you for using PERL's Apartment Management System!\n");
+	print("Credits to..."); sleep 1;
+	print("\n\tOcampo, Hans Christian S."); sleep 1;
+	print("\n\tOchoa, Bianca Claire L."); sleep 1;
+	print("\n\tOchoa, Bianca Venice L."); sleep 1;
+	print("\n\tUrquico, Josef Miko G.\n\n"); sleep 1;
+	print("-------------------------------------------------------\n\n");
+	sleep 1;
+	exit;	
+}
+
+sub invalid_message {
+	print("\nERROR | Invalid Option. Please try again.\n");
+	sleep 2.5;	
+}
+
 sub is_invalid {
 	my ($choice, $min, $max) = @_; #parameters for args
 	return ($choice !~ /^\d+$/ || $choice < $min || $choice > $max); #returns boolean
@@ -20,13 +39,25 @@ sub is_invalid {
 sub db_display {
 	my $query = $myConnection->prepare('Select * from tenants');
 	$query->execute();
-	print("Tenant ID    | Full Name            | Floor Number |  Room Number\n");
-	print("-" x 66, "\n");
+	print("-------------------------------------------------------------------");
+	print("\n Tenant ID   | Full Name            | Floor Number |  Room Number\n");
+	print("-------------------------------------------------------------------\n");
 	
 	#row is array that holds values of fetchrow_array
 	while (my @row = $query->fetchrow_array) {
 	printf("%-12s | %-20s | %-12s | %-6s\n", @row), "\n";
 	}
+	print("-------------------------------------------------------------------\n");
+}
+
+sub registration_check {
+	my ($a) = @_;
+	if ($a eq '000') {
+		system("cls");
+		print("\nReturning to Main Menu...\n");
+		sleep 2.5;
+		last;
+	}					
 }
 
 sub set_lease_details {
@@ -74,22 +105,22 @@ sub set_lease_details {
 
 while (1) {
 	system("cls");
-	print("Welcome to PERL's Apartment Management System\n");
-	print("[1] Start the Program\n[0] Exit\n");
-	print("\n\tEnter Choice: ");
+	print("-----------------------------------------------\n");
+	print(" Welcome to PERL's Apartment Management System \n");
+	print("-----------------------------------------------\n\n");
+	print("[1] Start the Program\n[0] Exit\n\n");
+	print("-----------------------------------------------\n");
+	print(">> Enter Choice: ");
 	my $choice = <STDIN>;
 	chomp $choice;
 	
 	if (is_invalid($choice, 0, 1)) {
-		print("\n\tInvalid Option. Please try again.\n");
-		sleep 1;
+		invalid_message();
 	}
 	
 	
 	elsif ($choice == 0) {
-			print("\nThank you for using PERL’s Apartment Management System.\n");
-			sleep 1;
-			exit;
+		exit_program();
 	}
 	
 	elsif ($choice == 1){ #Main Program na to
@@ -99,40 +130,45 @@ while (1) {
 		while (is_invalid($menuChoice, 0, 0)) {
 			my $flag = 1;
 			system("cls");
-			
-			print("\nApartment Management Main Menu\n");
-			print("\n[1] Tenant Log\n[2] Register Tenant\n[3] Update Tenant Details\n[4] Terminate Lease\n[5] Compute Rent\n[0] Terminate Program");
-			print("\n\n\tEnter Choice: ");
+			print("--------------------------------\n");
+			print(" Apartment Management Main Menu\n");
+			print("--------------------------------\n");
+			print("\n[1] Tenant Log\n[2] Register Tenant\n[3] Update Tenant Details\n[4] Terminate Lease\n[5] Compute Rent\n[0] Terminate Program\n");
+			print("\n--------------------------------");
+			print("\n>> Enter Choice: ");
 			$menuChoice = <STDIN>;
 			chomp $menuChoice;
 			
 			if (is_invalid($menuChoice, 0, 5)) {
-				print("\n\tInvalid Option. Please try again.\n");
-				sleep 1;
+				invalid_message();
 				}
 				
 			elsif ($menuChoice == 1) {
 				
 				while (1) {
 					system("cls");
-					print("\nTenant Log Viewer\n");
-					print("\n[1] Display All Tenant Records\n[2] Display Specific Tenant Records [tenant_id]\n[0] Return to Main Menu");
-					print("\n\n\tChoice: ");
+					print("-----------------------------------");
+					print("\n\tList of Tenant Logs");
+					print("\n-----------------------------------\n");
+					print("\n[1] Display All Tenant Records\n[2] Display Specific Tenant Record\n[0] Return to Main Menu\n");
+					print("\n-----------------------------------");
+					print("\n>> Enter Choice: ");
 					$choice = <STDIN>;
 					chomp $choice;
 					
 					if (is_invalid($choice, 0, 2)) {
-					print("\n\tInvalid Option. Please try again.\n");
-					sleep 1;
+						invalid_message();
 					}
 					
 					elsif ($choice == 0) {
-					print("\n\tReturning to Main Menu...\n");
+					system("cls");
+					print("\nReturning to Main Menu...\n");
 					sleep 1;
 					last;
 					}
 					
 					elsif ($choice == 1){
+						system("cls");
 						db_display();
 						print("\n\tPress any key to continue.");
 						<STDIN>;
@@ -140,7 +176,7 @@ while (1) {
 					
 					elsif ($choice == 2) {
 						while (1) {
-							print("\n\tEnter the Tenant's ID: ");
+							print("\n>> Enter the Tenant's ID: ");
 							my $tenant_id = <STDIN>;
 							chomp $tenant_id;
 							
@@ -148,27 +184,31 @@ while (1) {
 							my $count = $myConnection->selectrow_array('Select count(*) from tenants');
 							
 							if (is_invalid($tenant_id, 1, $count)) {
-								print("\n\tInvalid Tenant ID. Please try again.\n");
+								print("\nERROR | Invalid Tenant ID. Please try again.\n");
 							}
 							else { 
 								#get list of tenants to check if input is in tenants
 								my @tenantIdList = $myConnection->selectcol_arrayref('Select tenant_id from tenants');
 								
 								if (grep($tenant_id, @tenantIdList)) {
+									system("cls");
 									print("\nFetching Tenant's Records...\n");
+									sleep 2;
+									print("Tenant Records Fetched!\n\n");
 									sleep 1;
-									print("\nTenant Records Fetched!\n\n");
+									system("cls");
 									
 									my $query = $myConnection->prepare('Select * from tenants where tenant_id =  ?');
 									$query->execute($tenant_id);
-									
-									print("Tenant ID    | Full Name            | Floor Number |  Room Number\n");
-									print("-" x 66, "\n");
+									print("-" x 67, "\n");
+									print(" Tenant ID   | Full Name            | Floor Number |  Room Number\n");
+									print("-" x 67, "\n");
 									
 									#row is array that holds values of fetchrow_array
 									while (my @row = $query->fetchrow_array) {
 										printf("%-12s | %-20s | %-12s | %-6s\n", @row), "\n";
 									}
+									print("-" x 67, "\n");
 
 								}
 								last;
@@ -184,20 +224,29 @@ while (1) {
 			
 			
 			elsif ($menuChoice == 2){
-				while ($flag == 1) {
+				while (1) {
 					system("cls");
-					print("\nTenant Registration Menu\n");
-					print("\n\tEnter Tenant Name: ");
+					print("-" x 40, "\n");
+					print("\tTenant Registration Menu\n");
+					print("-" x 40, "\n\n");
+					print(" Please fill out the Registration Form\n Enter '000' to Return to Menu...\n\n");
+					print("-" x 40, "\n");
+					print("\nTenant Name: ");
 					my $full_name = <STDIN>;
 					chomp $full_name;
+					registration_check($full_name);
 				
-					print("\n\tEnter Floor Number: ");
+					print("Floor Number: ");
 					my $floor_num = <STDIN>;
 					chomp $floor_num;
+					registration_check($floor_num);
 				
-					print("\n\tEnter Room Number: ");
+					print("Room Number: ");
 					my $room_num = <STDIN>;
 					chomp $room_num;
+					registration_check($room_num);
+					print("\n");
+					print("-" x 40, "\n");
 					
 					#get number of matching names
 					my $query = $myConnection->prepare('Select count(*) from tenants where full_name like ?');
@@ -210,19 +259,18 @@ while (1) {
 					my $takenRoom = $query->fetchrow_array();
 					
 					if ((is_invalid($floor_num, 1, 5)) || (is_invalid($room_num, 1, 10))) {
-						print("\n\tRoom/Floor is Invalid and or Occupied. Please try again.\n");
-						sleep 1;
-						$flag = 0;
+						print("\nERROR | Room/Floor is Invalid and or Occupied. Please try again.\n");
+						sleep 2.5;
 					}
 					
 					elsif ($takenRoom > 0){
-						print("\n\tRoom $room_num in Floor $floor_num is already occupied. Please try again.\n");
-						sleep 1;
+						print("\nERROR | Room $room_num in Floor $floor_num is already occupied. Please try again.\n");
+						sleep 2.5;
 					}
 					
 					elsif ($count > 0) {
-						print("\n\tTenant is already stored in Tenant Logs.\n");
-						sleep 1;
+						print("\nERROR | Tenant is already stored in Tenant Logs.\n");
+						sleep 2.5;
 					}
 					
 					else {
@@ -237,8 +285,10 @@ while (1) {
 
 						# now insert a row in the lease table
 						set_lease_details($tenant_id, $floor_num);
-						print("\n\tTenant Successfully Added!\n");
-						sleep 1.5;
+						print("\nAdding Tenant to Database...");
+						sleep 3;
+						print("\nTenant Successfully Added!\n");
+						sleep 2.5;
 						last;
 					}
 				}
@@ -248,9 +298,11 @@ while (1) {
 			elsif ($menuChoice == 3){
 				choice3:
 				system('cls');
-				print("\nTenant Logs Updater Menu\n");
+				print("-------------------------------------------------------------------");
+				print("\n\t\t   Tenant Logs Updater Menu\n");
 				db_display();
-				print("\n\tWhich Tenant would you like to make modifications?\n\n");
+				print("\nWhich Tenant would you like to make modifications?\n\n");
+				print(">> Enter Tenant ID: ");
 				
 				# asks for either tenant id/name
 				my $tenant_id = <STDIN>;
@@ -262,21 +314,28 @@ while (1) {
 
 				# if tenant id/name does not exist
 				if (!$exists) {
-					print("\nInvalid Tenant ID. Please try again.");
-					sleep 1;
+					print("\n-------------------------------------------------------------------");
+					print("\nERROR | Invalid Tenant ID. Please try again.");
+					sleep 2.5;
 					goto choice3;
 				} 
-
+				
 				modif_prompt:
-
-				print("\nEnter a floor number: ");
+				system('cls');
+				print("-------------------------------------------------------------------");
+				print("\n\t\t   Update Tenant Information Form\n");
+				print("\t\t[ Updating Tenant ", $tenant_id, "'s information ]\n");
+				
+				#add option to update name.
+				print("-------------------------------------------------------------------\n");
+				print("\nFloor number: ");
 				my $floor_num = <STDIN>;
-				$floor_num += 0;
+				#$floor_num += 0;
 				chomp($floor_num);
 
-				print("\nEnter a room number: ");
+				print("Room number: ");
 				my $room_num = <STDIN>;
-				$room_num += 0;
+				#$room_num += 0;
 				chomp($room_num);
 
 				# checks if provided floor & room number doesn't exist (meaning, not occupied yet)
@@ -285,12 +344,12 @@ while (1) {
 				$exists = $query->fetchrow_array;
 
 				if ($exists) { # if said room is occupied
-					print("\nEntered room in said floor is already taken. Please try again");
-					sleep 1;
+					print("\nERROR | Entered room in said floor is already taken. Please try again.");
+					sleep 2.5;
 					goto modif_prompt;
 				} elsif (is_invalid($floor_num, 1, 5) || is_invalid($room_num, 1, 10)) { # if user input is invalid
-					print("\nEntered floor/room is invalid. Please try again");
-					sleep 1;
+					print("\nERROR | Entered floor/room is invalid. Please try again.");
+					sleep 2.5;
 					goto modif_prompt;
 				}
 				# update tenant floor and room details
@@ -298,8 +357,11 @@ while (1) {
 				$query->execute($floor_num, $room_num, $tenant_id);
 				# update lease details
 				set_lease_details($tenant_id, $floor_num);
-				print("\nDone modifying tenant details");
-				sleep 1;
+				system('cls');
+				print("Updating Database...");
+				sleep 3;
+				print("\nSuccessfully Updated Database!");
+				sleep 2.5;
 
 				
 			}
@@ -396,8 +458,6 @@ while (1) {
 			}
 			
 		}
-		print("\n\tThank you for using PERL's Business and Employee Payroll System.\n");
-		sleep 3;
-		exit;
+		exit_program();
 	}
 }
