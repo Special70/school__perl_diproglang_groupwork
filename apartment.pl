@@ -20,6 +20,7 @@ sub exit_program {
 	print("\n\tOchoa, Bianca Venice L."); sleep 1;
 	print("\n\tUrquico, Josef Miko G.\n\n"); sleep 1;
 	print("-------------------------------------------------------\n\n");
+	$myConnection->disconnect;
 	sleep 1;
 	exit;	
 }
